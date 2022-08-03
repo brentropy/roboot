@@ -1,0 +1,29 @@
+{
+  "name": "roboot",
+  "version": "1.0.0",
+  "description": "A dependency injection library with support for circular dependencies and async initialization",
+  "type": "module",
+  "main": "roboot.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "keywords": [
+    "ioc",
+    "dependency",
+    "injection",
+    "container",
+    "circular",
+    "async",
+    "asynchronous",
+    "boot"
+  ],
+  "bugs": {
+    "url": "https://github.com/brentropy/roboot/issues"
+  },
+  "repository": {
+    "url": "https://github.com/brentropy/roboot"
+  },
+  "author": "Brent Burgoyne",
+  "license": "MIT",
+  "dependencies": {}
+}
