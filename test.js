@@ -1,5 +1,5 @@
 // @ts-check
-import assert from "node:assert/strict";
+import assert from "node:assert";
 import { Provider, Service, Container } from "./roboot.mjs";
 
 test("boots an returns an instance of a single root service", async () => {
