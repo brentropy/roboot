@@ -1,5 +1,10 @@
 # ![Roboot](assets/header.png)
 
+[![](https://img.shields.io/github/workflow/status/brentropy/roboot/run-tests/main?style=flat-square)][3]
+[![](https://img.shields.io/npm/v/roboot?style=flat-square)][2]
+[![](https://img.shields.io/github/license/brentropy/roboot?style=flat-square)](LICENSE.md)
+
+
 Roboot is a minimal dependency container and bootstrapping library for
 JavaScript. It provides just enough stucture to write clean testable code
 without sacrificing simplicity and flexability.
@@ -171,3 +176,5 @@ It returns the value that will be returned when `use` is called with this class.
 Roboot is licensed under the MIT licese. See [LICENSE.md](LICENSE.md).
 
 [1]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Public_class_fields#public_instance_fields
+[2]: https://npmjs.com/package/roboot
+[3]: https://github.com/brentropy/roboot/actions?query=branch%3Amain
