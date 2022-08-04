@@ -1,5 +1,3 @@
-# Roboot
-
 Copyright (c) 2022 Brent Burgoyne
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
