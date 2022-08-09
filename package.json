@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "A dependency injection library with support for circular dependencies and async initialization",
   "type": "module",
-  "main": "roboot.js",
+  "main": "roboot.mjs",
   "scripts": {
     "test": "node test.js"
   },
