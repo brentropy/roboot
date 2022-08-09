@@ -1,6 +1,6 @@
 {
   "name": "roboot",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A dependency injection library with support for circular dependencies and async initialization",
   "type": "module",
   "main": "roboot.mjs",
