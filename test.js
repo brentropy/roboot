@@ -35,7 +35,7 @@ test("use resolves same instance in subsequent calls", async () => {
   assert.equal(testService.a, testService.b);
 });
 
-test("all circular references reselved when boot is called", async () => {
+test("all circular references resolved when boot is called", async () => {
   /** @type {unknown} */
   let ab;
   /** @type {unknown} */

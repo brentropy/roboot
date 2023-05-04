@@ -8,8 +8,7 @@
  */
 
 /**
- * @typedef {typeof BaseProvider<T>} ProviderClass
- * @template [T=any]
+ * @typedef {typeof BaseProvider} ProviderClass
  */
 
 /**
@@ -59,14 +58,14 @@ export class Container {
   unresolvedCircular = [];
 
   /**
-   * @type {Map<ProviderClass, Promise<void>>}
+   * @type {Map<ProviderClass, Promise<void>> | undefined}
    */
-  bootedPromises;
+  bootedPromises = undefined;
 
   /**
-   * @type {Map<ProviderClass, Promise<void>>}
+   * @type {Map<ProviderClass, Promise<void>> | undefined}
    */
-  disposedPromises;
+  disposedPromises = undefined;
 
   /**
    * Use an alternate implementation whenever a provider is used in this
@@ -92,7 +91,7 @@ export class Container {
    *
    * @template {ProviderClass} P
    * @param {P} Dependency
-   * @param {ProviderClass} [Dependent] used when tracking circular depenencies
+   * @param {ProviderClass} [Dependent] used when tracking circular dependencies
    * @return {ProvidedBy<InstanceType<P>>}
    */
   use(Dependency, Dependent) {
@@ -116,7 +115,7 @@ export class Container {
   }
 
   /**
-   * Create a new intance of a provider class.
+   * Create a new instance of a provider class.
    *
    * @private
    * @template {ProviderClass} P
@@ -124,16 +123,17 @@ export class Container {
    * @return {ProvidedBy<InstanceType<P>>}
    */
   make(Dependency) {
-    /** @type {ProviderClass<ProvidedBy<InstanceType<P>>>} */
+    /** @type {ProviderClass} */
     let Implementation = this.bindings.get(Dependency) ?? Dependency;
     let implementation = new Implementation(this);
+    /** @type {ProvidedBy<InstanceType<P>>} */
     let instance = implementation.provide();
     this.instanceProviders.set(instance, implementation);
     return instance;
   }
 
   /**
-   * Apply calls a function with the container inststance and returns the
+   * Apply calls a function with the container instance and returns the
    * container instance. This can be useful when with chaining method calls
    * when creating a new container.
    *
@@ -145,7 +145,7 @@ export class Container {
   }
 
   /**
-   * Boot esolves a single root provider and it's dependencies then boot all
+   * Boot resolves a single root provider and it's dependencies then boot all
    * provided instances.
    *
    * @template {ProviderClass} P
@@ -165,7 +165,7 @@ export class Container {
 
   /**
    * Replace temporary objects returned due to a circular dependency with actual
-   * depenency instances.
+   * dependency instances.
    *
    * @private
    */
@@ -225,7 +225,6 @@ export class Container {
  * Base class used to create provider classes with injectable dependencies.
  *
  * @abstract
- * @template T
  */
 class BaseProvider {
   /**
@@ -328,7 +327,7 @@ class BaseProvider {
    * something other than the instance of the sub-class such as a factory
    * function or an instance from a 3rd party package.
    *
-   * @return {T}
+   * @return {any}
    */
   provide() {
     throw this.notImplemented();
@@ -338,7 +337,7 @@ class BaseProvider {
 /**
  * Service is a special-case provider that provides itself. It is typically used
  * as the base class when implementing implement application code to avoid the
- * unnecessary boilerplate of writing a seperate provider for each class.
+ * unnecessary boilerplate of writing a separate provider for each class.
  *
  * @abstract
  */
@@ -351,11 +350,10 @@ export class Service extends BaseProvider {
 /**
  * Provider is a base class that can be extended to provide an instance of any
  * type while supporting injected dependencies and lifecycle hooks. It is
- * typically used to wire up external depenencies.
+ * typically used to wire up external dependencies.
  *
  * @abstract
  * @template T
- * @extends {BaseProvider<T>}
  */
 export class Provider extends BaseProvider {
   /**
@@ -363,14 +361,19 @@ export class Provider extends BaseProvider {
    *
    * @template T
    * @param {T} value
-   * @return {ProviderClass<T>}
+   * @return {typeof Provider<T>}
    */
   static fromValue(value) {
-    return class extends Provider {
-      provide() {
-        return value;
+    return (
+      /**
+       * @extends Provider<T>
+       */
+      class extends Provider {
+        provide() {
+          return value;
+        }
       }
-    };
+    );
   }
 
   /**
