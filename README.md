@@ -48,9 +48,9 @@ class Logger extends Service {
 }
 
 class Counter extends Service {
-  logger = this.use(Logger);
-  count = 0;
-  intervalHandle;
+  private logger = this.use(Logger);
+  private count = 0;
+  private intervalHandle?: number;
 
   async boot() {
     await this.booted(Logger);
@@ -94,12 +94,12 @@ A `Container` handles resolving instances of dependencies (including circular
 dependencies) and executing lifecycle hooks. It also supports binding
 alternative implementations for a `Provider`.
 
-#### `container.boot(Root: Provider | Service) => Promise<ProvidedBy<Root>>`
+#### `container.boot<T>(Root: ProviderClass<T>) => Promise<T>`
 
 Create an instance of a root provider resolving and booting all dependencies
 before the returned promise is resolved with the instance.
 
-#### `container.bind(Provider: Provider | Service, Implementation: Provider | Service) => Container`
+#### `container.bind<T>(Provider: ProviderClass<T>, Implementation: ProviderClass<T>) => Container`
 
 Provide an alternate implementation for a given provider/service in the context
 of this container. This must be called before `boot()`.
@@ -117,7 +117,7 @@ hooks. A `Provider<T>` can resolve to any value by implementing the
 `provide() => T` method. `Service` is a special case provider that always
 provides itself.
 
-#### `provider.use(Dependency: Provider | Service) => ProvidedBy<Dependency>`
+#### `provider.use<T>(Dependency: ProviderClass<T>) => T`
 
 `@protected`
 
@@ -125,7 +125,7 @@ Create or re-use an existing instance of the dependency from the container. This
 should be called synchronously when instantiating the class, typically via an
 [instance field initializer][1].
 
-#### `provider.booted(Dependency: Provider | Service) => Promise<void>`
+#### `provider.booted(Dependency: ProviderClass) => Promise<void>`
 
 `@protected`
 
@@ -134,7 +134,7 @@ returned promise will resolve once the `boot` method of the dependency
 has finished. This should only be called within the `boot` method of a
 `Provider` or `Service` child class.
 
-#### `provider.dispoosed(Dependency: Provider | Service) => Promise<void>`
+#### `provider.disposed(Dependency: ProviderClass) => Promise<void>`
 
 `@protected`
 
@@ -143,13 +143,13 @@ returned promise will resolve once the `dispose` method of the dependency
 has finished. This should only be called within the `dispose` method of a
 `Provider` or `Service` child class.
 
-#### `provider.boot() => Promise<void>`
+#### `provider.boot(instance: T) => Promise<void>`
 
 This may be optionally implemented by a child class to execute initialization
 code that should run when booting the container. There is no need to call
 `super.boot()`.
 
-#### `provider.dispose() => Promise<void>`
+#### `provider.dispose(instance: T) => Promise<void>`
 
 This may be optionally implemented by a child class to execute clean up
 code that should run when disposing of the container. There is no need to call
@@ -164,7 +164,7 @@ It returns the value that will be returned when `use` is called with this class.
 
 ## License
 
-Roboot is licensed under the MIT licese. See [LICENSE.md](LICENSE.md).
+Roboot is licensed under the MIT license. See [LICENSE.md](LICENSE.md).
 
 [1]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Public_class_fields#public_instance_fields
 [2]: https://npmjs.com/package/roboot
