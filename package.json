@@ -8,7 +8,8 @@
     "test": "jest",
     "build": "tsc",
     "prepare": "husky install",
-    "fmt": "prettier --write \"**/*\""
+    "fmt": "prettier --write \"**/*\"",
+    "prepublishOnly": "npm test && npm run build"
   },
   "files": [
     "dist/**/*"
