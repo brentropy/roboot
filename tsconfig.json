@@ -1,11 +1,14 @@
 {
   "compilerOptions": {
     "target": "es2016",
-    "allowJs": true,
-    "checkJs": true,
+    "module": "commonjs",
     "declaration": true,
-    "emitDeclarationOnly": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "esModuleInterop": true,
     "strict": true,
+    "skipLibCheck": true
   },
-  "files": ["roboot.mjs"]
+  "files": ["roboot.ts"]
 }

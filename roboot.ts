@@ -1,5 +1,3 @@
-// @ts-check
-
 /**
  * Roboot
  * Copyright (c) 2022 Brent Burgoyne
@@ -7,75 +5,44 @@
  * Documentation: https://github.com/brentropy/roboot/blob/master/README.md
  */
 
-/**
- * @typedef {typeof BaseProvider} ProviderClass
- */
+interface IProvider<T> {
+  boot?(instance: T): Promise<void>;
+  dispose?(instance: T): Promise<void>;
+  provide(): T;
+}
 
-/**
- * @typedef {T extends { provide: () => infer R } ? R : never} ProvidedBy
- * @template T
- */
+type ProviderClass<T = unknown> = new (container: Container) => IProvider<T>;
+
+type UnresolvedCircular = {
+  temp: Object;
+  Dependent: ProviderClass;
+  Dependency: ProviderClass;
+};
 
 /**
  * Container for resolving dependency instances.
  */
 export class Container {
-  /** @private */
-  finalized = false;
+  private finalized = false;
+  private bindings = new Map<ProviderClass, ProviderClass>();
+  private instances = new Map<ProviderClass, any>();
+  private instanceProviders = new Map<any, IProvider<unknown>>();
+  private useStack: ProviderClass[] = [];
+  private unresolvedCircular: UnresolvedCircular[] = [];
 
-  /**
-   * @private
-   * @type {Map<ProviderClass, ProviderClass>}
-   */
-  bindings = new Map();
-
-  /**
-   * @private
-   * @type {Map<ProviderClass, any>}
-   */
-  instances = new Map();
-
-  /**
-   * @private
-   * @type {Map<any, BaseProvider>}
-   */
-  instanceProviders = new Map();
-
-  /**
-   * @private
-   * @type {Array<ProviderClass>}
-   */
-  useStack = [];
-
-  /**
-   * @private
-   * @type {Array<{
-   *   temp: Object;
-   *   Dependent: ProviderClass;
-   *   Dependency: ProviderClass;
-   * }>}
-   */
-  unresolvedCircular = [];
-
-  /**
-   * @type {Map<ProviderClass, Promise<void>> | undefined}
-   */
-  bootedPromises = undefined;
-
-  /**
-   * @type {Map<ProviderClass, Promise<void>> | undefined}
-   */
-  disposedPromises = undefined;
+  bootedPromises?: Map<ProviderClass, Promise<void>>;
+  disposedPromises?: Map<ProviderClass, Promise<void>>;
 
   /**
    * Use an alternate implementation whenever a provider is used in this
    * container instance.
    *
-   * @template T, U
-   * @param {ProviderClass} Provider
-   * @param {ProviderClass} Implementation
+   * @todo better typing?
    */
-  bind(Provider, Implementation) {
+  bind<T extends ProviderClass, U extends ProviderClass>(
+    Provider: T,
+    Implementation: U
+  ) {
     if (this.instances.has(Provider)) {
       throw new Error(
         "Cannot change binding for a provider that has been already used"
@@ -88,13 +55,8 @@ export class Container {
   /**
    * Return an existing instance for a provider or create a new instance if one
    * doesn't already exist.
-   *
-   * @template {ProviderClass} P
-   * @param {P} Dependency
-   * @param {ProviderClass} [Dependent] used when tracking circular dependencies
-   * @return {ProvidedBy<InstanceType<P>>}
    */
-  use(Dependency, Dependent) {
+  use<I>(Dependency: ProviderClass<I>, Dependent?: ProviderClass): I {
     let instance = this.instances.get(Dependency);
     if (instance === undefined) {
       if (this.useStack.includes(Dependency) && Dependent) {
@@ -122,9 +84,9 @@ export class Container {
    * @param {P} Dependency
    * @return {ProvidedBy<InstanceType<P>>}
    */
-  make(Dependency) {
-    /** @type {ProviderClass} */
-    let Implementation = this.bindings.get(Dependency) ?? Dependency;
+  make<I>(Dependency: ProviderClass<I>): I {
+    let Implementation =
+      (this.bindings.get(Dependency) as ProviderClass<I>) ?? Dependency;
     let implementation = new Implementation(this);
     /** @type {ProvidedBy<InstanceType<P>>} */
     let instance = implementation.provide();
@@ -136,10 +98,8 @@ export class Container {
    * Apply calls a function with the container instance and returns the
    * container instance. This can be useful when with chaining method calls
    * when creating a new container.
-   *
-   * @param {(container: Container) => any} func
    */
-  apply(func) {
+  apply(func: (container: Container) => any) {
     func(this);
     return this;
   }
@@ -147,12 +107,8 @@ export class Container {
   /**
    * Boot resolves a single root provider and it's dependencies then boot all
    * provided instances.
-   *
-   * @template {ProviderClass} P
-   * @param {P} Root
-   * @return {Promise<ProvidedBy<InstanceType<P>>>}
    */
-  async boot(Root) {
+  async boot<I>(Root: ProviderClass<I>): Promise<I> {
     if (this.finalized) {
       throw Error("Container instance cannot be booted more than once");
     }
@@ -166,10 +122,8 @@ export class Container {
   /**
    * Replace temporary objects returned due to a circular dependency with actual
    * dependency instances.
-   *
-   * @private
    */
-  async resolveCircular() {
+  private async resolveCircular(): Promise<void> {
     for (let { temp, Dependent, Dependency } of this.unresolvedCircular) {
       let dependant = this.instances.get(Dependent);
       let dependency = this.instances.get(Dependency);
@@ -186,16 +140,13 @@ export class Container {
   /**
    * Start the async boot for all resolved services and resolve once all have
    * resolved successfully or reject if any once of them fails.
-   *
-   * @private
-   * @return {Promise<void>}
    */
-  async bootAll() {
+  private async bootAll(): Promise<void> {
     this.bootedPromises = new Map(
       [...this.instances.entries()].map(([Class, instance]) => [
         Class,
         Promise.resolve().then(() =>
-          this.instanceProviders.get(instance)?.boot(instance)
+          this.instanceProviders.get(instance)?.boot?.(instance)
         ),
       ])
     );
@@ -213,61 +164,29 @@ export class Container {
       [...this.instances.entries()].map(([Class, instance]) => [
         Class,
         Promise.resolve().then(() =>
-          this.instanceProviders.get(instance)?.dispose(instance)
+          this.instanceProviders.get(instance)?.dispose?.(instance)
         ),
       ])
     );
     await Promise.all(this.disposedPromises.values());
   }
 }
-
-/**
- * Base class used to create provider classes with injectable dependencies.
- *
- * @abstract
- */
-class BaseProvider {
-  /**
-   * @param {Container} container
-   */
-  constructor(container) {
-    /** @private */
-    this.container = container;
-  }
+abstract class Injectable {
+  constructor(private container: Container) {}
 
   /**
    * Use resolve a dependency from the container with dependant tracking to
    * identify and correctly handle circular references.
-   *
-   * @protected
-   * @template {ProviderClass} P
-   * @param {P} Dependency
-   * @return {ProvidedBy<InstanceType<P>>}
    */
-  use(Dependency) {
-    return this.container.use(
-      Dependency,
-      /** @type {ProviderClass} **/ (this.constructor)
-    );
+  protected use<I>(Dependency: ProviderClass<I>): I {
+    return this.container.use(Dependency, this.constructor as ProviderClass);
   }
-
-  /**
-   * Boot is called on all services after all dependencies are resolved.
-   *
-   * @param {ProvidedBy<this>} instance
-   * @return {Promise<void>}
-   */
-  async boot(instance) {}
 
   /**
    * Booted returns a promise that will be resolved after the dependency has
    * finished booting.
-   *
-   * @protected
-   * @param {ProviderClass} Dependency
-   * @return {Promise<void>}
    */
-  booted(Dependency) {
+  protected booted(Dependency: ProviderClass): Promise<void> {
     if (!this.container.bootedPromises) {
       return Promise.reject(
         new Error("Cannot call booted() outside of boot()")
@@ -282,14 +201,6 @@ class BaseProvider {
   }
 
   /**
-   * Dispose is called on all services when dispose is called on the container.
-   *
-   * @param {ProvidedBy<this>} instance
-   * @return {Promise<void>}
-   */
-  async dispose(instance) {}
-
-  /**
    * Disposed returns a promise that will be resolved after the dependency has
    * finished disposing.
    *
@@ -297,7 +208,7 @@ class BaseProvider {
    * @param {ProviderClass} Dependency
    * @return {Promise<void>}
    */
-  disposed(Dependency) {
+  protected disposed(Dependency: ProviderClass): Promise<void> {
     if (!this.container.disposedPromises) {
       return Promise.reject(
         new Error("Cannot call disposed() outside of dispose()")
@@ -310,79 +221,32 @@ class BaseProvider {
       )
     );
   }
-
-  /**
-   * Create a new not implemented error instance that can be thrown in methods
-   * of abstract providers that must be implemented by a child class.
-   *
-   * @protected
-   * @throws
-   */
-  notImplemented() {
-    return new Error("Method not implemented");
-  }
-
-  /**
-   * Provide may be implemented in a sub-class if the service should resolve to
-   * something other than the instance of the sub-class such as a factory
-   * function or an instance from a 3rd party package.
-   *
-   * @return {any}
-   */
-  provide() {
-    throw this.notImplemented();
-  }
-}
-
-/**
- * Service is a special-case provider that provides itself. It is typically used
- * as the base class when implementing implement application code to avoid the
- * unnecessary boilerplate of writing a separate provider for each class.
- *
- * @abstract
- */
-export class Service extends BaseProvider {
-  provide() {
-    return this;
-  }
 }
 
 /**
  * Provider is a base class that can be extended to provide an instance of any
  * type while supporting injected dependencies and lifecycle hooks. It is
  * typically used to wire up external dependencies.
- *
- * @abstract
- * @template T
  */
-export class Provider extends BaseProvider {
-  /**
-   * Create a new provider class that always resolves to the same value.
-   *
-   * @template T
-   * @param {T} value
-   * @return {typeof Provider<T>}
-   */
-  static fromValue(value) {
-    return (
-      /**
-       * @extends Provider<T>
-       */
-      class extends Provider {
-        provide() {
-          return value;
-        }
-      }
-    );
-  }
+export abstract class Provider<T> extends Injectable {
+  abstract provide(): T;
+}
 
-  /**
-   * Provide must be implemented by a provider and returns the provided
-   * instance.
-   *
-   * @return {T}
-   */
+/**
+ * Service is a special-case provider that provides itself. It is typically used
+ * as the base class when implementing implement application code to avoid the
+ * unnecessary boilerplate of writing a separate provider for each class.
+ */
+export abstract class Service extends Injectable {
   provide() {
-    throw this.notImplemented();
+    return this;
   }
+}
+
+export function valueProvider<T>(value: T): ProviderClass<T> {
+  return class extends Provider<T> {
+    provide(): T {
+      return value;
+    }
+  };
 }

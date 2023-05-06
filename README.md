@@ -4,32 +4,23 @@
 [![](https://img.shields.io/npm/v/roboot?style=flat-square)][2]
 [![](https://img.shields.io/github/license/brentropy/roboot?style=flat-square)](LICENSE.md)
 
-
 Roboot is a minimal dependency container and bootstrapping library for
-JavaScript. It provides just enough stucture to write clean testable code
-without sacrificing simplicity and flexability.
+TypeScript and JavaScript. It provides just enough structure to write clean
+testable code without sacrificing simplicity and flexibility.
 
 ## Features
 
 - Helps avoid module side-effects and global state
-- Supports circlular dependencies
+- Supports circular dependencies
 - Manages instance lifecycle with support for asynchronous `boot` and `dispose`
-- Single JavaScript file with TypeScript annotations in JSDoc comments
-- Zero dependencies
+- Zero dependencies (excluding dev dependencies)
 - Well tested
 
 ## Install
 
-### NPM
-
 ```sh
 npm install roboot
 ```
-
-### Vendor
-
-Copy `roboot.mjs` direclty in to your project. It does not have any dependencies
-and a build step is not needed.
 
 ## Lifecycle
 
@@ -37,10 +28,10 @@ and a build step is not needed.
 
 ## Basic Usage
 
-```js
+```ts
 import { Container, Service } from "roboot";
 
-class Logger extends Service  {
+class Logger extends Service {
   async boot() {
     await new Promise((resolve) => setTimeout(resolve, 1000));
     this.info("Logger booted");
@@ -73,7 +64,7 @@ class Counter extends Service {
   }
 
   start() {
-    this.logger.info("Starting counter")
+    this.logger.info("Starting counter");
     this.intervalHandle = setInterval(() => {
       this.count += 1;
       this.logger.info(this.count);
@@ -81,7 +72,7 @@ class Counter extends Service {
   }
 }
 
-function sigintHandler(container) {
+function sigintHandler(container: Container) {
   process.on("SIGINT", async () => {
     await container.dispose();
     process.exit(130);
