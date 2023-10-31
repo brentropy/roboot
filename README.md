@@ -1,6 +1,6 @@
 # ![Roboot](assets/header.png)
 
-[![](https://img.shields.io/github/workflow/status/brentropy/roboot/run-tests/main?style=flat-square)][3]
+[![](https://img.shields.io/github/actions/workflow/status/brentropy/roboot/tests.yml?branch=main&style=flat-square)][3]
 [![](https://img.shields.io/npm/v/roboot?style=flat-square)][2]
 [![](https://img.shields.io/github/license/brentropy/roboot?style=flat-square)](LICENSE.md)
 
