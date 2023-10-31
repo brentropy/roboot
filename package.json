@@ -1,6 +1,6 @@
 {
   "name": "roboot",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A dependency injection library with support for circular dependencies and async initialization",
   "main": "dist/roboot.js",
   "typings": "dist/roboot.d.ts",
