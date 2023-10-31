@@ -1,27 +1,15 @@
 name: run-tests
 on: [push]
 jobs:
-  node-14:
+  current-node-versions:
+    strategy:
+      matrix:
+        version: [16, 18, 20]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: 14
-      - run: npm test
-  node-16:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 16
-      - run: npm test
-  node-18:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 18
+          node-version: ${{ matrix.version }}
+      - run: npm install
       - run: npm test
