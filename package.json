@@ -28,7 +28,7 @@
     "url": "https://github.com/brentropy/roboot/issues"
   },
   "repository": {
-    "url": "https://github.com/brentropy/roboot"
+    "url": "git+https://github.com/brentropy/roboot.git"
   },
   "author": "Brent Burgoyne",
   "license": "MIT",
