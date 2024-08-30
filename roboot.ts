@@ -36,13 +36,8 @@ export class Container {
   /**
    * Use an alternate implementation whenever a provider is used in this
    * container instance.
-   *
-   * @todo better typing?
    */
-  bind<T extends ProviderClass, U extends ProviderClass>(
-    Provider: T,
-    Implementation: U
-  ) {
+  bind<T extends ProviderClass, U extends T>(Provider: T, Implementation: U) {
     if (this.instances.has(Provider)) {
       throw new Error(
         "Cannot change binding for a provider that has been already used"
