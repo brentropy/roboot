@@ -6,6 +6,7 @@
  */
 
 interface IProvider<T> {
+  registry?: ProviderClass<Registry<T>>;
   boot?(instance: T): Promise<void>;
   dispose?(instance: T): Promise<void>;
   provide(): T;
@@ -20,7 +21,13 @@ type UnresolvedCircular = {
 };
 
 /**
- * Container for resolving dependency instances.
+ * A symbol key allowing Container to call what should otherwise be considered a
+ * private method of Registry.
+ */
+const registerKey = Symbol("registerKey");
+
+/**
+ * Container for resolving and initializing dependency instances.
  */
 export class Container {
   private finalized = false;
@@ -73,18 +80,21 @@ export class Container {
 
   /**
    * Create a new instance of a provider class.
-   *
-   * @private
-   * @template {ProviderClass} P
-   * @param {P} Dependency
-   * @return {ProvidedBy<InstanceType<P>>}
    */
-  make<I>(Dependency: ProviderClass<I>): I {
+  private make<I>(Dependency: ProviderClass<I>): I {
     let Implementation =
       (this.bindings.get(Dependency) as ProviderClass<I>) ?? Dependency;
     let implementation = new Implementation(this);
     /** @type {ProvidedBy<InstanceType<P>>} */
     let instance = implementation.provide();
+
+    if (implementation.registry) {
+      this.use(implementation.registry, Implementation)[registerKey](
+        Implementation,
+        instance
+      );
+    }
+
     this.instanceProviders.set(instance, implementation);
     return instance;
   }
@@ -166,6 +176,10 @@ export class Container {
     await Promise.all(this.disposedPromises.values());
   }
 }
+
+/**
+ * Common base without provider type for Providers and Services.
+ */
 abstract class Injectable {
   constructor(private container: Container) {}
 
@@ -224,6 +238,8 @@ abstract class Injectable {
  * typically used to wire up external dependencies.
  */
 export abstract class Provider<T> extends Injectable {
+  registry?: ProviderClass<Registry<T>>;
+
   abstract provide(): T;
 }
 
@@ -233,15 +249,65 @@ export abstract class Provider<T> extends Injectable {
  * unnecessary boilerplate of writing a separate provider for each class.
  */
 export abstract class Service extends Injectable {
+  registry?: ProviderClass<Registry<this>>;
+
   provide() {
     return this;
   }
 }
 
+/**
+ * A helper for creating a provider class that resolves to a static value.
+ */
 export function valueProvider<T>(value: T): ProviderClass<T> {
   return class extends Provider<T> {
     provide(): T {
       return value;
     }
   };
+}
+
+/**
+ * Registry is a Service that tracks a collection of providers that resolve to a
+ * compatible type.
+ */
+export abstract class Registry<T> extends Service {
+  private providers = new Map<ProviderClass<T>, T>();
+
+  [registerKey](Provider: ProviderClass<T>, instance: T) {
+    this.providers.set(Provider, instance);
+  }
+
+  /**
+   * Call a callback with each instance of the registered providers.
+   */
+  protected forEach(callback: (instance: T) => void): void {
+    [...this.providers.values()].forEach(callback);
+  }
+
+  /**
+   * Return a array of values returned by a callback called with each instance
+   * of the registered providers.
+   */
+  protected map<U>(callback: (instance: T) => U): U[] {
+    return [...this.providers.values()].map(callback);
+  }
+
+  /**
+   * Waits for all registered providers' boot methods to resolve.
+   */
+  protected async allBooted(): Promise<void> {
+    await Promise.all(this.mapProviders((Provider) => this.booted(Provider)));
+  }
+
+  /**
+   * Waits for all registered providers' dispose methods to resolve.
+   */
+  protected async allDisposed(): Promise<void> {
+    await Promise.all(this.mapProviders((Provider) => this.disposed(Provider)));
+  }
+
+  private mapProviders<U>(callback: (Provider: ProviderClass<T>) => U): U[] {
+    return [...this.providers.keys()].map(callback);
+  }
 }

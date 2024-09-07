@@ -1,4 +1,10 @@
-import { Provider, Service, Container, valueProvider } from "./roboot";
+import {
+  Provider,
+  Service,
+  Container,
+  valueProvider,
+  Registry,
+} from "./roboot";
 
 describe("Roboot", () => {
   test("boots an returns an instance of a single root service", async () => {
@@ -130,5 +136,102 @@ describe("Roboot", () => {
     let container = new Container().apply((c) => (applied = c));
     expect(applied).toBe(container);
     expect(container).toBeInstanceOf(Container);
+  });
+
+  describe("Registry", () => {
+    class TestRegistry<T extends RegisteredBase> extends Registry<T> {}
+
+    abstract class RegisteredBase extends Service {
+      registry = TestRegistry;
+      abstract value: number;
+      isBooted = false;
+      isDisposed = false;
+
+      async boot() {
+        await Promise.resolve();
+        this.isBooted = true;
+      }
+
+      async dispose() {
+        await Promise.resolve();
+        this.isDisposed = true;
+      }
+    }
+
+    class A extends RegisteredBase {
+      value = 1;
+    }
+
+    class B extends RegisteredBase {
+      value = 2;
+    }
+
+    class App extends Service {
+      testRegistry = this.use(TestRegistry);
+      a = this.use(A);
+      b = this.use(B);
+    }
+
+    test("forEach", async () => {
+      expect.assertions(1);
+      class EachTestRegistry<T extends RegisteredBase> extends TestRegistry<T> {
+        async boot() {
+          let sum = 0;
+          this.forEach((registered) => {
+            sum += registered.value;
+          });
+          expect(sum).toBe(3);
+        }
+      }
+      let container = new Container().bind(TestRegistry, EachTestRegistry);
+      await container.boot(App);
+    });
+
+    test("map", async () => {
+      expect.assertions(1);
+      class MapTestRegistry<T extends RegisteredBase> extends TestRegistry<T> {
+        async boot() {
+          let values = this.map((registered) => registered.value * 2);
+          expect(values.sort()).toEqual([2, 4]);
+        }
+      }
+      let container = new Container().bind(TestRegistry, MapTestRegistry);
+      await container.boot(App);
+    });
+
+    test("allBooted", async () => {
+      expect.assertions(2);
+      class BootedTestRegistry<
+        T extends RegisteredBase
+      > extends TestRegistry<T> {
+        async boot() {
+          let beforeAllBooted = this.map((instance) => instance.isBooted);
+          await this.allBooted();
+          let afterAllBooted = this.map((instance) => instance.isBooted);
+          expect(beforeAllBooted).toEqual([false, false]);
+          expect(afterAllBooted).toEqual([true, true]);
+        }
+      }
+      let container = new Container().bind(TestRegistry, BootedTestRegistry);
+      await container.boot(App);
+    });
+
+    test("allDisposed", async () => {
+      expect.assertions(2);
+      class DisposedTestRegistry<
+        T extends RegisteredBase
+      > extends TestRegistry<T> {
+        async dispose() {
+          let beforeAllDisposed = this.map((instance) => instance.isDisposed);
+          await this.allDisposed();
+          let afterAllDisposed = this.map((instance) => instance.isDisposed);
+          expect(beforeAllDisposed).toEqual([false, false]);
+          expect(afterAllDisposed).toEqual([true, true]);
+        }
+      }
+      let container = new Container().bind(TestRegistry, DisposedTestRegistry);
+      await container.boot(App);
+      await container.dispose();
+    });
   });
 });
