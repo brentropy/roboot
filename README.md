@@ -162,6 +162,37 @@ For child classes of `Provider<T>` only. `Service` implements its own `provide`.
 The `provide` method must be implemented by each child class of `Provider<T>`.
 It returns the value that will be returned when `use` is called with this class.
 
+#### `registry?: ProviderClass<Registry<T>>`
+
+The `provide` property allows optionally specifying a `Registry` class that will
+hold a reference to the resolved instance.
+
+### `Registry<T>`
+
+Registry is an abstract service used for tracking a collection of `Provider`s or
+`Services` that resolve to a compatible type. The registry will implement a
+`boot()` and/or `dispose()` that can call the following protected methods to
+interact with the registered instances.
+
+#### `this.forEach(callback: (T) => void) => void`
+
+Call a callback function with each registered instance.
+
+#### `this.map<U>(callback: (T) => U) => U[]`
+
+Create an array with the return values of calling a callback with each
+registered instance.
+
+#### `this.allBooted() => Promise<void>`
+
+Return a promise that resolves when the boot method of all registered providers
+has resolved.
+
+#### `this.allDisposed() => Promise<void>`
+
+Return a promise that resolves when the dispose method of all registered
+providers has resolved.
+
 ## License
 
 Roboot is licensed under the MIT license. See [LICENSE.md](LICENSE.md).
