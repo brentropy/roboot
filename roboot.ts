@@ -89,8 +89,8 @@ export class Container {
     let instance = implementation.provide();
 
     if (implementation.registry) {
-      this.use(implementation.registry, Implementation)[registerKey](
-        Implementation,
+      this.use(implementation.registry, Dependency)[registerKey](
+        Dependency,
         instance
       );
     }
