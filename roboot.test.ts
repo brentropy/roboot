@@ -233,5 +233,25 @@ describe("Roboot", () => {
       await container.boot(App);
       await container.dispose();
     });
+
+    test("binding alternative service implementations with registry", async () => {
+      expect.assertions(1);
+      class BootedTestRegistry<
+        T extends RegisteredBase
+      > extends TestRegistry<T> {
+        async boot() {
+          await this.allBooted();
+          let values = this.map((instance) => instance.value);
+          expect(values).toEqual([1, 3]);
+        }
+      }
+      class C extends B {
+        override value = 3;
+      }
+      let container = new Container()
+        .bind(TestRegistry, BootedTestRegistry)
+        .bind(B, C);
+      await container.boot(App);
+    });
   });
 });
