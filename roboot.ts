@@ -12,7 +12,9 @@ interface IProvider<T> {
   provide(): T;
 }
 
-type ProviderClass<T = unknown> = new (container: Container) => IProvider<T>;
+export type ProviderClass<T = unknown> = new (
+  container: Container
+) => IProvider<T>;
 
 type UnresolvedCircular = {
   temp: Object;
